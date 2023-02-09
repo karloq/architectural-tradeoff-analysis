@@ -1,6 +1,8 @@
 % This script allows for automatic running of Simulink Models using 
 % Volvo Architecture Component-Blocks 
 
+% Clear Workspace
+clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
@@ -15,6 +17,12 @@ out_frame = ["cache_size", "consistency", "no_cores", ...
 out_frame_zeroes = [3,4,5,7,8];
 out_frame_cost_index = 7;
 out_frame_time_index = 8;
+
+% Limit number of simulations to run (-1) = all simulations
+simulation_limit = 10;
+
+% Add filename for output file (automatically named if left)
+out_filename = '';
 % Suppress warnings
 %#ok<*NBRAK2> 
 %#ok<*AGROW> 
@@ -74,6 +82,9 @@ sz = size(master_pva);
 out_frame_sz = size(out_frame);
 
 for runs = 1:sz(1)
+    if simulation_limit >= 0 && runs > simulation_limit
+        break;
+    end
     out_frame_row = zeros(1,out_frame_sz(2));
     param_index = 0;
     % For all parameters in output frame
@@ -112,10 +123,12 @@ for runs = 1:sz(1)
     out_frame = [out_frame; out_frame_row];
 end
 
+if strcomp(out_filename,'')
+    model_string = string(model_name(1:end-1));
+    date_string = erase(string(datetime)," ");
+    out_filename =  model_string + '_' + date_string;
+end
 
-
-
-
-
+writematrix(out_frame, out_filename);
 
 
