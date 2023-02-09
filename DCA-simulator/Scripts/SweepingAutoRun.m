@@ -21,8 +21,6 @@ out_frame_time_index = 8;
 % Limit number of simulations to run (-1) = all simulations
 simulation_limit = 10;
 
-% Add filename for output file (automatically named if left)
-out_filename = '';
 % Suppress warnings
 %#ok<*NBRAK2> 
 %#ok<*AGROW> 
@@ -82,7 +80,7 @@ sz = size(master_pva);
 out_frame_sz = size(out_frame);
 
 for runs = 1:sz(1)
-    if simulation_limit >= 0 && runs > simulation_limit
+    if simulation_limit >= 0 && runs >= simulation_limit
         break;
     end
     out_frame_row = zeros(1,out_frame_sz(2));
@@ -123,12 +121,16 @@ for runs = 1:sz(1)
     out_frame = [out_frame; out_frame_row];
 end
 
-if strcomp(out_filename,'')
-    model_string = string(model_name(1:end-1));
-    date_string = erase(string(datetime)," ");
-    out_filename =  model_string + '_' + date_string;
-end
+% Create filename
+model_string = string(model_name(1:end-1));
+date_string = strrep(erase(string(datetime)," "), ':', '-');
+out_filename =  model_string + '_' + date_string + '.csv';
 
+% Prompt user for storage of output
+[baseFileName, outputFolder] = uiputfile(out_filename);
+out_filename = fullfile(outputFolder, baseFileName);
+
+% Write output to file
 writematrix(out_frame, out_filename);
 
 
