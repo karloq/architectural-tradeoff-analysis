@@ -9,14 +9,14 @@ clear;
 model_file = 'DebuggingModel_1.slx';
 model_name = 'DebuggingModel_1/';
 % Blocks (that have parameters) in the model
-blocks = ["Cache", "C3","Container", "Lambda"]; 
+blocks = ["Cache", "S3","Container","MessageQueue","Lambda"]; 
 blocks_zeroes = [3];
 % Must follow the order of blocks and the parameter order inside
 out_frame = ["cache_size", "consistency", "no_cores", ...
-    "container_no_instances","ram","lambda_no_instances", "cost", "time"];
-out_frame_zeroes = [3,4,5,7,8];
-out_frame_cost_index = 7;
-out_frame_time_index = 8;
+    "container_no_instances","ram","queue_size","lambda_no_instances", "cost", "time"];
+out_frame_zeroes = [2,3,4,5];
+out_frame_cost_index = 8;
+out_frame_time_index = 9;
 
 % Limit number of simulations to run (-1) = all simulations
 simulation_limit = 10;
@@ -104,7 +104,7 @@ for runs = 1:sz(1)
     end
     
     % Reset cost and times
-    c3_sout = [0,0];
+    s3_sout = [0,0];
     lambda_sout = [0,0];
     container_sout = [0,0];
 
@@ -112,9 +112,9 @@ for runs = 1:sz(1)
     sim_data = sim(model_file);
 
     % Sum quality measures
-    out_frame_row(out_frame_time_index) = c3_sout(1,1) + lambda_sout(1,1) ...
+    out_frame_row(out_frame_time_index) = s3_sout(1,1) + lambda_sout(1,1) ...
         + container_sout(1,1);
-    out_frame_row(out_frame_cost_index) = c3_sout(1,2) + lambda_sout(1,2) ...
+    out_frame_row(out_frame_cost_index) = s3_sout(1,2) + lambda_sout(1,2) ...
         + container_sout(1,2);
     
     % Add collected row to output frame
