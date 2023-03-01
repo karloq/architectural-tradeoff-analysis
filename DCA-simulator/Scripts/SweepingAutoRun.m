@@ -9,16 +9,29 @@ clear;
 model_file = 'DebuggingModel_1.slx';
 model_name = 'DebuggingModel_1/';
 % Blocks (that have parameters) in the model
-blocks = ["Cache", "C3","Container", "Lambda"]; 
+blocks = ["Cache", "S3","Container","MessageQueue","Lambda"]; 
 blocks_zeroes = [3];
 % Must follow the order of blocks and the parameter order inside
-out_frame = ["cache_size", "consistency", "no_cores", ...
-    "container_no_instances","ram","lambda_no_instances", "cost", "time"];
-out_frame_zeroes = [3,4,5,7,8];
-out_frame_cost_index = 7;
-out_frame_time_index = 8;
+out_frame = ["e_cache","cache_size", ... #1,2
+             "e_S3","consistency", ... #3,4
+             "e_container","no_cores","container_no_instances","ram",... #5,6,7,8
+             "e_messageQueue","queue_size",... #9,10
+             "e_lambda","lambda_no_instances",... #11,12
+             "cost", "time" ... #13,14
+             ]; 
+% These must be set correct for output validity
+% With "Index" it is implied index in out_frame above
+%   out_frame_parameters    : Index for parameters that are used in model
+%   out_frame_existence     : Index for existence columns (named "e_xxx")
+%   out_frame_cost_index    : Index for cost quality measure
+%   out_frame_time_index    : Index for time quality measure
 
-% Limit number of simulations to run (-1) = all simulations
+out_frame_parameters = [2,4,10,12];
+out_frame_existence = [1,3,9,11];
+out_frame_cost_index = 13;
+out_frame_time_index = 14;
+
+% Limit number of simulations to run. (-1) = all simulations
 simulation_limit = 10;
 
 % Suppress warnings
@@ -37,8 +50,6 @@ b_name = [];
 pva = {};
 % Output frame to contain all simulation data 
 master_simulation_data = [];
-% master_pva will contatin all parameter values for each possible
-% simulation
 
 %-------------------- Simulation setup creation -------------------------%
 
@@ -80,31 +91,34 @@ sz = size(master_pva);
 out_frame_sz = size(out_frame);
 
 for runs = 1:sz(1)
+    % Debug limit of simulations
     if simulation_limit >= 0 && runs >= simulation_limit
         break;
     end
+
+    % Create empty output row for simulation
     out_frame_row = zeros(1,out_frame_sz(2));
-    param_index = 0;
-    % For all parameters in output frame
-    for out_params = 1:(out_frame_sz(2))
-        % Keep separate idex for parameters to use
-        param_index = param_index + 1;
-        % If parameter is not in model, skip it
-        if ismember(out_params,out_frame_zeroes)
-            param_index = param_index - 1;
-            continue;
-        end
+
+    % Fill in existence columns
+    for component_index = out_frame_existence
+        out_frame_row(component_index) = 1;
+    end
+    
+    % Load parameters in model and record to out frame
+    pva_index = 0;
+    for out_params = out_frame_parameters
+        pva_index = pva_index+1;
         % Get parameter value
-        parameter_value = master_pva(runs,param_index);
+        parameter_value = master_pva(runs,pva_index);
         % Save Parameter value to output frame
         out_frame_row(out_params) = parameter_value;
         % Load parameter value to model
-        set_param(model_name + b_name(param_index), p_name(param_index), ...
+        set_param(model_name + b_name(pva_index), p_name(pva_index), ...
             int2str(parameter_value));
     end
     
     % Reset cost and times
-    c3_sout = [0,0];
+    s3_sout = [0,0];
     lambda_sout = [0,0];
     container_sout = [0,0];
 
@@ -112,9 +126,9 @@ for runs = 1:sz(1)
     sim_data = sim(model_file);
 
     % Sum quality measures
-    out_frame_row(out_frame_time_index) = c3_sout(1,1) + lambda_sout(1,1) ...
+    out_frame_row(out_frame_time_index) = s3_sout(1,1) + lambda_sout(1,1) ...
         + container_sout(1,1);
-    out_frame_row(out_frame_cost_index) = c3_sout(1,2) + lambda_sout(1,2) ...
+    out_frame_row(out_frame_cost_index) = s3_sout(1,2) + lambda_sout(1,2) ...
         + container_sout(1,2);
     
     % Add collected row to output frame
