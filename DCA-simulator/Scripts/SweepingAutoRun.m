@@ -6,18 +6,16 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-model_file = 'DebuggingModel_1.slx';
-model_name = 'DebuggingModel_1/';
+model_file = 'TestModel.slx';
+model_name = 'TestModel/';
 % Blocks (that have parameters) in the model
-blocks = ["Cache", "S3","Container","MessageQueue","Lambda"]; 
-blocks_zeroes = [3];
+blocks = ["SQS", "S3","Lambda"]; 
+blocks_zeroes = [2];
 % Must follow the order of blocks and the parameter order inside
-out_frame = ["e_cache","cache_size", ... #1,2
-             "e_S3","consistency", ... #3,4
-             "e_container","no_cores","container_no_instances","ram",... #5,6,7,8
-             "e_messageQueue","queue_size",... #9,10
-             "e_lambda","lambda_no_instances",... #11,12
-             "cost", "time" ... #13,14
+out_frame = ["e_SQS","queue_size", "timeout" ... #1,2,3
+             "e_S3", ... #4
+             "e_lambda","parallel_instances","lambda_chunk_size"... #5,6,7
+             "time", "cost" ... #8,9
              ]; 
 % These must be set correct for output validity
 % With "Index" it is implied index in out_frame above
@@ -26,10 +24,10 @@ out_frame = ["e_cache","cache_size", ... #1,2
 %   out_frame_cost_index    : Index for cost quality measure
 %   out_frame_time_index    : Index for time quality measure
 
-out_frame_parameters = [2,4,10,12];
-out_frame_existence = [1,3,9,11];
-out_frame_cost_index = 13;
-out_frame_time_index = 14;
+out_frame_parameters = [2,3,6,7];
+out_frame_existence = [1,4,5];
+out_frame_time_index = 8;
+out_frame_cost_index = 9;
 
 % Limit number of simulations to run. (-1) = all simulations
 simulation_limit = 10;
@@ -54,14 +52,15 @@ master_simulation_data = [];
 %-------------------- Simulation setup creation -------------------------%
 
 % Read all "blockname.m" files and iteratively populate pva and p_name
+empty = 0;
 column = 0;
 for i = 1:length(blocks)
     % If block is not in current model, skip it
     if ismember(i,blocks_zeroes)
+        empty = empty + 1;
         continue
     end
 
-    column = column + 1;
     script = blocks(i) + ".m";
 
     % Run script and fill workspace with variables
@@ -70,10 +69,11 @@ for i = 1:length(blocks)
     p_name = [p_name, parameter_names];
 
     for j = 1:length(parameter_values)
-        index = j+column-1;
+        index = j+(i-empty-1) + column;
         pva{index} = parameter_values{j};  
         b_name = [b_name, blocks(i)];
     end
+    column = column + 1;
 end
 
 % Get all permutations of the vectors using the ndgrid function
@@ -118,18 +118,20 @@ for runs = 1:sz(1)
     end
     
     % Reset cost and times
+    sqs_sout = [0,0];
     s3_sout = [0,0];
     lambda_sout = [0,0];
-    container_sout = [0,0];
 
     % Run simulation
     sim_data = sim(model_file);
 
     % Sum quality measures
-    out_frame_row(out_frame_time_index) = s3_sout(1,1) + lambda_sout(1,1) ...
-        + container_sout(1,1);
-    out_frame_row(out_frame_cost_index) = s3_sout(1,2) + lambda_sout(1,2) ...
-        + container_sout(1,2);
+    out_frame_row(out_frame_time_index) = sqs_sout(1,1) + ...
+                                          s3_sout(1,1) + ...
+                                          lambda_sout(1,1);
+    out_frame_row(out_frame_cost_index) = sqs_sout(1,2) + ...
+                                          s3_sout(1,2) + ...
+                                          lambda_sout(1,2);
     
     % Add collected row to output frame
     out_frame = [out_frame; out_frame_row];
