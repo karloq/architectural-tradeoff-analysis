@@ -30,12 +30,22 @@ out_frame_time_index = 8;
 out_frame_cost_index = 9;
 
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 10;
+simulation_limit = 10000;
 
 % Suppress warnings
 %#ok<*NBRAK2> 
 %#ok<*AGROW> 
 %#ok<*SAGROW>
+%------------------------ Model Initiation  -----------------------------%
+
+cacheSize = 8;
+dataSize = 5000;
+spurtsCount = 10;
+load_system(model_file);
+
+ set_param(model_name + "Diagnostic Data", "cache_size", int2str(cacheSize), ...
+                        "total_data_size", int2str(dataSize), ... 
+                        "spurts", int2str(spurtsCount));
 
 %--------------------------- Initiation  --------------------------------%
 
@@ -85,12 +95,32 @@ master_pva = cell2mat(cellfun(@(x) x(:), X, 'UniformOutput', false));
 %--------------------------- Simulation ---------------------------------%
 
 % Simulation loop
+% Get size of all runs before filtering
+sz = size(master_pva);
+
+illegal_runs_index = [];
+for i = 1:sz(1)
+    run = master_pva(i,1:4);
+    if (run(1) < cacheSize)
+        illegal_runs_index = [illegal_runs_index,i];
+    elseif (run(4) < cacheSize)
+        illegal_runs_index = [illegal_runs_index,i];
+    end
+end
+
+master_pva(illegal_runs_index,:) = [];
+
 % Get size of the parameters to use
 sz = size(master_pva);
 % Get size for all parameters there is in the output frame
 out_frame_sz = size(out_frame);
 
 for runs = 1:sz(1)
+    if simulation_limit > -1 
+        run_index = randi(sz(1));
+    else
+        run_index = runs;
+    end
     % Debug limit of simulations
     if simulation_limit >= 0 && runs >= simulation_limit
         break;
@@ -109,7 +139,7 @@ for runs = 1:sz(1)
     for out_params = out_frame_parameters
         pva_index = pva_index+1;
         % Get parameter value
-        parameter_value = master_pva(runs,pva_index);
+        parameter_value = master_pva(run_index,pva_index);
         % Save Parameter value to output frame
         out_frame_row(out_params) = parameter_value;
         % Load parameter value to model
