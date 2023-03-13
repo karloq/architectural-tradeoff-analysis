@@ -1,2 +1,0 @@
-e_SQS,queue_size,timeout,e_S3,e_lambda,parallel_instances,lambda_chunk_size,time,cost
-1,1,2,1,1,4,8,0.2,0.00032046
