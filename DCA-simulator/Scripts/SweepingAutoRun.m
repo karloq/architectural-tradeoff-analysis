@@ -30,7 +30,7 @@ out_frame_time_index = 8;
 out_frame_cost_index = 9;
 
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 10000;
+simulation_limit = -1;
 
 % Suppress warnings
 %#ok<*NBRAK2> 
@@ -151,6 +151,8 @@ for runs = 1:sz(1)
     sqs_sout = [0,0];
     s3_sout = [0,0];
     lambda_sout = [0,0];
+
+    disp("Running " + runs + " / " + sz(1) + "( " + (runs/sz(1)) * 100 + "% )")
 
     % Run simulation
     sim_data = sim(model_file);

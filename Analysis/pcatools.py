@@ -8,6 +8,8 @@ from paretoset import paretoset
 import plotly.express as px
 import pandas as pd
 from adjustText import adjust_text
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
 def paretoOptimize(df, target_columns, target_objectives, iterations):
     target_df = df[target_columns]
@@ -28,6 +30,12 @@ def paretoOptimize(df, target_columns, target_objectives, iterations):
     return df_pareto
 
 def printPareto(df, df_pareto, target_columns, invert_axles):
+    
+    legend_elements = [Line2D([0], [0], marker='o', color='w', label='Non-optimal Sample',
+                          markerfacecolor='b', markersize=8),
+                   Line2D([0], [0], marker='o', color='w', label='Pareto Optimal Sample',
+                          markerfacecolor='g', markersize=8)]
+    
     plt.scatter(df[target_columns[0]], df[target_columns[1]], color='b')
     plt.scatter(df_pareto[target_columns[0]], df_pareto[target_columns[1]], color='g')
     plt.xlabel(target_columns[0])
@@ -35,6 +43,7 @@ def printPareto(df, df_pareto, target_columns, invert_axles):
     if invert_axles:
         plt.gca().invert_yaxis()
         plt.gca().invert_xaxis()
+    plt.legend(handles=legend_elements, loc='lower left')
     plt.show()
     
 def printParameterScatter(df, parameter_names, color_variable, plot_title):
