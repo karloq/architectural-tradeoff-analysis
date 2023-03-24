@@ -10,6 +10,7 @@ import pandas as pd
 from adjustText import adjust_text
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
+from sklearn.preprocessing import MinMaxScaler
 
 def paretoOptimize(df, target_columns, target_objectives, iterations):
     target_df = df[target_columns]
@@ -104,10 +105,26 @@ def printPCA(pca, pca_data, correlation_matrix, plot_title, categories, colormap
     # Create labels
     labels = ['PC' + str(x) for x in range(1, len(per_var)+1)]
     pca_df = pd.DataFrame(pca_data, index=correlation_matrix.columns, columns=labels)
-    plt.scatter(pca_df.PC1, pca_df.PC2,  c=colormap[categories])
+    
+    # fit and transform the dataframe
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+    df_scaled = pd.DataFrame(scaler.fit_transform(pca_df), columns=pca_df.columns)
+    df_scaled.index = pca_df.index
+    
+    circle1 = plt.Circle((0, 0), 1, color='none', ec='black', alpha=1)
+    plt.gca().add_artist(circle1)
+
+    circle2 = plt.Circle((0, 0), 0.7, color='none', ec='black', alpha=1)
+    plt.gca().add_artist(circle2)
+    
+    plt.gca().set_aspect('equal')
+    
+    plt.scatter(df_scaled.PC1, df_scaled.PC2,  c=colormap[categories])
     plt.title(plot_title)
     plt.xlabel('PC1 - {0}%'.format(per_var[0]))
     plt.ylabel('PC2 - {0}%'.format(per_var[1]))
-    texts = [plt.text(pca_df.PC1[i], pca_df.PC2[i], pca_df.PC1.keys()[i]) for i in range(len(pca_df.PC2))]
+    plt.xlim(-1.1, 1.1)
+    plt.ylim(-1.1, 1.1)
+    texts = [plt.text(df_scaled.PC1[i], df_scaled.PC2[i], df_scaled.PC1.keys()[i]) for i in range(len(df_scaled.PC2))]
     adjust_text(texts)
     plt.show()
