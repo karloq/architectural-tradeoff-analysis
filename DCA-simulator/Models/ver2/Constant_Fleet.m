@@ -1,6 +1,6 @@
 block_name = "Constant Fleet";
 
-a = ["cache_size","cont", "0", "10", "1"];
+a = ["cache_size","cont", "1", "10", "1"];
 
 parameter_name  =    [a(1)];
 value_dist      =    [a(2)];

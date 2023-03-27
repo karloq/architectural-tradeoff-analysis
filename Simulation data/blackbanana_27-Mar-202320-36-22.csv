@@ -1,0 +1,6 @@
+1,1,1,parallel_instances,lambda_chunk_size,ondemand,peak_buffer,efo_consumers,base_records,peak_records,cache_size,time,cost,scalability,reliability
+Lambda,Kinesis_Stream,Constant_Fleet,8,0.032,0,552,0,1,0,1,104,1.050105,0,0
+Lambda,Kinesis_Stream,Constant_Fleet,8,0.016,0,237,1,0,0,1,104,0.4502295,0,0
+Lambda,Kinesis_Stream,Constant_Fleet,2,1.848,0,604,1,0,1,8,26,8.40236,0,0
+Lambda,Kinesis_Stream,Constant_Fleet,5,0.744,0,934,0,0,1,5,65,7.80007,0,0
+Lambda,Kinesis_Stream,Constant_Fleet,8,0.12,0,37,1,0,0,6,104,0.1501788,0,0

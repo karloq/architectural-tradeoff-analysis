@@ -58,7 +58,6 @@ end
 %--------------------------- Simulation ---------------------------------%
 
 % Simulation loop
-out_frame_size = length(blocks) + length(sout_info) + length(parameter_info);
 
 for i = 1:length(parameter_info)
     parameter_names(i) = parameter_info(i,2);
@@ -89,7 +88,7 @@ for runs = 1:simulation_limit
                 lower = log10(min);
                 upper = log10(max);
                 v = logspace(lower, upper, 100);
-                w = round(v / 8) * 8;
+                w = round(v / step) * step;
                 value = w(randi(length(w)));
             case "bool"
                 value = randi([min,max]);
@@ -125,7 +124,8 @@ for runs = 1:simulation_limit
     quality_metrics= [quality_metrics;quality_metrics_row];
 end
 
-out_frame = [];
+out_frame = [ones(1,length(blocks)), parameter_names, ...
+    "time", "cost", "scalability", "reliability"];
 for i = 1:height(parameter_values)
     out_frame_row = [blocks, parameter_values(i,:), quality_metrics(i,:)];
     out_frame = [out_frame;out_frame_row];
