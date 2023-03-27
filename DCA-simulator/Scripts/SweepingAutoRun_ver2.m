@@ -6,14 +6,16 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-model_file = 'TestModel.slx';
-model_name = 'TestModel/';
+model_file = 'blackbanana.slx';
+model_name = 'blackbanana/';
+% Data Source (Fleet)
+source_block_name = "Constant Fleet";
+sb_parameter_names = ["time","message_size","frequency","fleet_size"];
+sb_parameter_values = [10, 1, 1, 1000];
 % Blocks (that have parameters) in the model
-blocks = ["SQS", "S3","Lambda"]; 
-% Must follow the order of blocks and the parameter order inside
-out_frame = [];
+blocks = ["Lambda","Kinesis_Stream","Constant_Fleet"];
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 100;
+simulation_limit = 5;
 
 % Suppress warnings
 %#ok<*NBRAK2> 
@@ -23,34 +25,30 @@ simulation_limit = 100;
 load_system(model_file);
 
 %TODO% add scenario parameter loading
- set_param(model_name + "Diagnostic Data", "cache_size", int2str(cacheSize), ...
-                        "total_data_size", int2str(dataSize), ... 
-                        "spurts", int2str(spurtsCount));
-
-%--------------------------- Initiation  --------------------------------%
-
-% Vector to contain all parameter names
-p_name = [];
-% Vector to contain all block names
-b_name = [];
-
-
+for i = 1:length(sb_parameter_names)
+    set_param(model_name + source_block_name, sb_parameter_names(i), ...
+        int2str(sb_parameter_values(i)))
+end
 %-------------------- Simulation setup creation -------------------------%
-
-% Read all "blockname.m" files and iteratively populate pva and p_name
+% Read all "blockname.m" files
 out_index = 1;
 sout_out_index = 1;
+parameter_info = [];
+sout_info = [];
 for i = 1:length(blocks)
     % Run script and fill workspace with variables
     script = blocks(i) + ".m";
     run(script);
 
-    sout_info = [sout_name, sout_out_index];
-    sout_out_index = sout_out_index + 1;
+    if (sout_name ~= "")
+        sout_info = [sout_info;sout_name, sout_out_index];
+        sout_out_index = sout_out_index + 1;
+    end
 
-    for p = 1:length(block_parameters)
-        parameter_info_row = [blocks(i),parameter_name(p), ...
-            value_dist(p), value_min(p), value_max(p), value_step(p),out_index];
+    for p = 1:length(parameter_name)
+        parameter_info_row = [block_name,parameter_name(p), ...
+            value_dist(p), value_min(p), value_max(p), value_step(p), ...
+            out_index];
 
         out_index = out_index + 1;
 
@@ -63,25 +61,27 @@ end
 out_frame_size = length(blocks) + length(sout_info) + length(parameter_info);
 
 for i = 1:length(parameter_info)
-    parameter_names(i) = parameter_info(2);
+    parameter_names(i) = parameter_info(i,2);
 end
 
-parameter_values = [parameter_names];
+parameter_values = [];
+
+quality_metrics = [];
 
 for runs = 1:simulation_limit
     parameter_value_row = [];
     for i = 1:length(parameter_info)
-        pinfo_row = parameter_info(i);
+        pinfo_row = parameter_info(i,:);
         
         pname = pinfo_row(2);
         dist = pinfo_row(3);
 
-        step = pinfo_row(6);
-        min = pinfo_row(4);
-        max = pinfo_row(5);
+        step = str2double(pinfo_row(6));
+        min = str2double(pinfo_row(4));
+        max = str2double(pinfo_row(5));
 
         switch dist
-            case "uniform"
+            case "cont"
                 lower = round(min/step);
                 upper = round(max/step);
                 value = randi([lower,upper])*step;
@@ -91,11 +91,13 @@ for runs = 1:simulation_limit
                 v = logspace(lower, upper, 100);
                 w = round(v / 8) * 8;
                 value = w(randi(length(w)));
+            case "bool"
+                value = randi([min,max]);
             otherwise
                 error("Unknown distribution of parameter: " + pname)
         end
 
-        set_param(model_name + '/' + pinfo_row(1), pname, ...
+        set_param(model_name + pinfo_row(1), pname, ...
         int2str(value));
         parameter_value_row(length(parameter_value_row)+1) = value; 
     end
@@ -108,15 +110,24 @@ for runs = 1:simulation_limit
     sim_data = sim(model_file);
 
     % Sum quality measures
-    quality_metrics = ['name',0,0,0,0];
+    cost = 0;
+    time = 0;
+    scalability = 0;
+    reliability = 0;
     for qm = 1:length(sout_info)
-        quality_metrics_row = [sout_info(1), eval(sout_info(1))];
-        quality_metrics = [quality_metrics;quality_metrics_row];
+        qm_temp = eval(sout_info(qm,1));
+        cost = cost + qm_temp(1);
+        time = time + qm_temp(2);
+        scalability = scalability + qm_temp(3);
+        reliability = reliability + qm_temp(4);
     end
+    quality_metrics_row = [cost, time, scalability, reliability];
+    quality_metrics= [quality_metrics;quality_metrics_row];
 end
 
-for i = 1:length(parameter_values)
-    out_frame_row = [blocks, parameter_values(i), quality_metrics(i)];
+out_frame = [];
+for i = 1:height(parameter_values)
+    out_frame_row = [blocks, parameter_values(i,:), quality_metrics(i,:)];
     out_frame = [out_frame;out_frame_row];
 end
 
