@@ -15,7 +15,7 @@ sb_parameter_values = [10, 1, 1, 1000];
 % Blocks (that have parameters) in the model
 blocks = ["Lambda","Kinesis_Stream","Constant_Fleet"];
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 5;
+simulation_limit = 500;
 
 % Suppress warnings
 %#ok<*NBRAK2> 
@@ -62,7 +62,6 @@ for i = 1:length(parameter_info)
 end
 
 parameter_values = [];
-
 quality_metrics = [];
 
 for runs = 1:simulation_limit
