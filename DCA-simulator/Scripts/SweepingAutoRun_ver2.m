@@ -57,8 +57,6 @@ for i = 1:length(blocks)
 end
 %--------------------------- Simulation ---------------------------------%
 
-% Simulation loop
-
 for i = 1:length(parameter_info)
     parameter_names(i) = parameter_info(i,2);
 end
@@ -115,19 +113,19 @@ for runs = 1:simulation_limit
     reliability = 0;
     for qm = 1:length(sout_info)
         qm_temp = eval(sout_info(qm,1));
-        cost = cost + qm_temp(1);
-        time = time + qm_temp(2);
+        time = time + qm_temp(1);
+        cost = cost + qm_temp(2);
         scalability = scalability + qm_temp(3);
         reliability = reliability + qm_temp(4);
     end
-    quality_metrics_row = [cost, time, scalability, reliability];
+    quality_metrics_row = [time, cost, scalability, reliability];
     quality_metrics= [quality_metrics;quality_metrics_row];
 end
 
-out_frame = [ones(1,length(blocks)), parameter_names, ...
+out_frame = [blocks, parameter_names, ...
     "time", "cost", "scalability", "reliability"];
 for i = 1:height(parameter_values)
-    out_frame_row = [blocks, parameter_values(i,:), quality_metrics(i,:)];
+    out_frame_row = [ones(1,length(blocks)), parameter_values(i,:), quality_metrics(i,:)];
     out_frame = [out_frame;out_frame_row];
 end
 
