@@ -1,6 +1,6 @@
 block_name = "Lambda";
 
-a = ["lambda_parallel_instances","cont", "1", "1000", "1"];
+a = ["lambda_parallel_instances","cont", "1", "100", "1"];
 b = ["lambda_allocated_memory","cont", "128", "10000", "128"];
 
 parameter_name =    [a(1),b(1)];

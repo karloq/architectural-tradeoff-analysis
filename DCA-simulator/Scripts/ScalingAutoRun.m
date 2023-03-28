@@ -6,8 +6,7 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-model_file = 'blackbanana.slx';
-model_name = 'blackbanana/';
+topology_script = 'bb_iotlam.m';
 % Data Source (Fleet)
 source_block_name = "Constant Fleet";
 sb_parameter_names = ["time","message_size","frequency","fleet_size"];
@@ -16,16 +15,15 @@ sb_parameter_values = [...
     [10, 1, 1, 1000];...
     [10, 1, 1, 10000]...
     ];
-% Blocks (that have parameters) in the model
-blocks = ["Lambda","Kinesis_Stream","Constant_Fleet"];
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 50;
+simulation_limit = 5;
 
 % Suppress warnings
 %#ok<*NBRAK2> 
 %#ok<*AGROW> 
 %#ok<*SAGROW>
 %------------------------ Model Initiation  -----------------------------%
+run(topology_script);
 load_system(model_file);
 %-------------------- Simulation setup creation -------------------------%
 % Read all "blockname.m" files
@@ -43,24 +41,27 @@ for i = 1:length(blocks)
         sout_out_index = sout_out_index + 1;
     end
 
-    for p = 1:length(parameter_name)
-        parameter_info_row = [block_name,parameter_name(p), ...
-            value_dist(p), value_min(p), value_max(p), value_step(p), ...
-            out_index];
-
-        out_index = out_index + 1;
-
-        parameter_info = [parameter_info; parameter_info_row];
-    end   
+    if ~isempty(parameter_name)
+        for p = 1:length(parameter_name)
+            parameter_info_row = [block_name,parameter_name(p), ...
+                value_dist(p), value_min(p), value_max(p), value_step(p), ...
+                out_index];
+        
+            out_index = out_index + 1;
+        
+            parameter_info = [parameter_info; parameter_info_row];
+        end   
+    end
+    
 end
 %--------------------------- Simulation ---------------------------------%
 
-for i = 1:length(parameter_info)
+
+for i = 1:height(parameter_info)
     parameter_names(i) = parameter_info(i,2);
 end
 
 parameter_values = [];
-
 quality_metrics = [];
  
 sec = 0;
@@ -72,7 +73,7 @@ remaining_time_str = hour + "h" + min + "m" + sec + "sec";
 for runs = 1:simulation_limit
     parameter_value_row = [];
 
-    for i = 1:length(parameter_info)
+    for i = 1:height(parameter_info)
             pinfo_row = parameter_info(i,:);
             
             pname = pinfo_row(2);
