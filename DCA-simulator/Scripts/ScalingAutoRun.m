@@ -19,7 +19,7 @@ sb_parameter_values = [...
 % Blocks (that have parameters) in the model
 blocks = ["Lambda","Kinesis_Stream","Constant_Fleet"];
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 500;
+simulation_limit = 50;
 
 % Suppress warnings
 %#ok<*NBRAK2> 
@@ -105,7 +105,7 @@ for runs = 1:simulation_limit
     end
 
     cost = 0;
-    time = 0;
+    latency = 0;
     scalability = 0;
     reliability = 0;
     delta_cost = 0;
@@ -126,12 +126,12 @@ for runs = 1:simulation_limit
         % Sum quality measures
         for qm = 1:length(sout_info)
             qm_temp = eval(sout_info(qm,1));
-            time = time + qm_temp(1);
+            latency = latency + qm_temp(1);
             cost = cost + qm_temp(2);
             reliability = reliability + qm_temp(3);
             scalability = scalability + qm_temp(4);
         end
-        quality_metrics_row = [quality_metrics_row; [time, cost, reliability, scalability]];       
+        quality_metrics_row = [quality_metrics_row; [latency, cost, reliability, scalability]];       
     end
 
     first = quality_metrics_row(1,1:3);
@@ -174,7 +174,7 @@ for runs = 1:simulation_limit
 end
 
 out_frame = [blocks, parameter_names, ...
-    "time", "cost", "reliability", "scalability"];
+    "latency", "cost", "reliability", "scalability"];
 for i = 1:height(parameter_values)
     out_frame_row = [ones(1,length(blocks)), parameter_values(i,:), quality_metrics(i,:)];
     out_frame = [out_frame;out_frame_row];
