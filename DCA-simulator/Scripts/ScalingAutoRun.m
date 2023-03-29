@@ -12,11 +12,11 @@ source_block_name = "Constant Fleet";
 sb_parameter_names = ["time","message_size","frequency","fleet_size"];
 subruns_limit = 2;
 sb_parameter_values = [...
-    [10, 1, 1, 1000];...
-    [10, 1, 1, 10000]...
+    ["10", "0.008", "1", "1000"];...
+    ["10","0.008", "1", "10000"]...
     ];
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 5;
+simulation_limit = 15000;
 
 % Suppress warnings
 %#ok<*NBRAK2> 
@@ -65,10 +65,10 @@ parameter_values = [];
 quality_metrics = [];
  
 sec = 0;
-min = 0;
+minut = 0;
 hour = 0;
 comp_time = 0;
-remaining_time_str = hour + "h" + min + "m" + sec + "sec";
+remaining_time_str = "";
 
 for runs = 1:simulation_limit
     parameter_value_row = [];
@@ -119,7 +119,7 @@ for runs = 1:simulation_limit
         % Set scenario parameters
         for i = 1:length(sb_parameter_names)
             set_param(model_name + source_block_name, sb_parameter_names(i), ...
-                int2str(sb_parameter_values(subruns,i)))
+                sb_parameter_values(subruns,i))
         end
         % Run simulation
         sim(model_file);
@@ -137,7 +137,7 @@ for runs = 1:simulation_limit
 
     first = quality_metrics_row(1,1:3);
     second = quality_metrics_row(2,1:3);
-    delta = (second - first)/(sb_parameter_values(2,4)-sb_parameter_values(1,4));
+    delta = (second - first)/(str2double(sb_parameter_values(2,4))-str2double(sb_parameter_values(1,4)));
 
     quality_metrics_row = quality_metrics_row(1,:) + quality_metrics_row(2,:);
     quality_metrics_row(4) =  quality_metrics_row(4) + sum(delta,"all");
@@ -159,18 +159,19 @@ for runs = 1:simulation_limit
         end
         if remaining_time >= 60
             seconds_left = mod(remaining_time,60);
-            hour = (remaining_time - seconds_left)/60;
+            minut = (remaining_time - seconds_left)/60;
             remaining_time = seconds_left;
         end
         sec = round(remaining_time);
     
-        remaining_time_str = hour + "h" + min + "m" + sec + "sec";
+        remaining_time_str = "Remaining Time: " + hour + "h" + minut + "m" + sec + "sec";
     end
 
     disp("Running " + runs + " of " + ...
             simulation_limit + "( " ...
-            + (runs/(simulation_limit)) * 100 + "% )" ...
-            + "Remaining time: " + remaining_time_str); 
+            + round((runs/(simulation_limit)) * 100) + "% )" ...
+            + remaining_time_str); 
+    remaining_time_str = "";
     tic;
 end
 
