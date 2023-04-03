@@ -1,10 +1,9 @@
 oblock_name = "Kinesis Stream";
 
-a = ["ondemand","bool", "0", "1", "1"];
-b = ["peak_buffer","cont", "1", "1000", "1"];
-c = ["efo_consumers","cont", "0", "1", "1"];
-d = ["base_records","log", "500", "100000", "50"];
-e = ["peak_records","log", "500", "100000", "50"];
+a = ["kinesis_ondemand","bool", 0, 1, 1];
+c = ["kinesis_efos","cont", 0, 1, 1];
+d = ["kinesis_records","log", 500, 10000, 50];
+e = ["kinesis_peak","cont", 0, 1, 0.1];
 
 parameter_name  =    [a(1),b(1),c(1),d(1),e(1)];
 value_dist      =    [a(2),b(2),c(2),d(2),e(2)];
