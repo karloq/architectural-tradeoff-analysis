@@ -7,6 +7,7 @@ clear;
 
 % Model name to be simulated
 topology_script = 'bb_kinlam_ver2.m';
+topology_name = "bb-kinlam_test";
 % Data Source (Fleet)
 source_block_name = "Constant Fleet";
 sb_parameter_names = ["simulation_time","message_size","fleet_size"];
@@ -140,10 +141,10 @@ for i = 1:2:length(out)
     qm_temp = [];
 end
         
-out_frame = [blocks, parameter_names, ...
+out_frame = ["Topology", parameter_names, ...
     "latency", "cost", "reliability", "scalability"];
 for i = 1:height(parameter_values)
-    out_frame_row = [ones(1,length(blocks)), parameter_values(i,:), quality_metrics(i,:)];
+    out_frame_row = [topology_name, parameter_values(i,:), quality_metrics(i,:)];
     out_frame = [out_frame;out_frame_row];
 end
 
