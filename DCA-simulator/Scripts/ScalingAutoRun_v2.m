@@ -6,17 +6,16 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-topology_script = 'bb_kinlam.m';
+topology_script = 'bb_kinlam_ver2.m';
 % Data Source (Fleet)
 source_block_name = "Constant Fleet";
 sb_parameter_names = ["time","message_size","frequency","fleet_size"];
-subruns_limit = 2;
 sb_parameter_values = [...
-    ["10", "0.008", "1", "1000"];...
-    ["10","0.008", "1", "10000"]...
+    [10, 0.008, 1, 1000];...
+    [10,0.008, 1, 10000]...
     ];
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 15000;
+simulation_limit = 15;
 % Suppress warnings
 %#ok<*NBRAK2> 
 %#ok<*AGROW> 
@@ -24,6 +23,8 @@ simulation_limit = 15000;
 %------------------------ Model Initiation  -----------------------------%
 run(topology_script);
 load_system(model_file);
+set_param(model_name,"FastRestart","on");
+set_param(model_name,"SimulationMode", "normal");
 %-------------------- Simulation setup creation -------------------------%
 % Read all "blockname.m" files
 out_index = 1;
@@ -72,6 +73,10 @@ remaining_time_str = "";
 for runs = 1:simulation_limit
     parameter_value_row = [];
 
+    hws = get_param(model_name, 'modelworkspace');
+    hws.DataSource = 'MAT-file';
+    hws.FileName = 'params';
+
     for i = 1:height(parameter_info)
             pinfo_row = parameter_info(i,:);
             
@@ -98,51 +103,54 @@ for runs = 1:simulation_limit
                 otherwise
                     error("Unknown distribution of parameter: " + pname)
             end
-    
-            set_param(model_name + pinfo_row(1), pname, ...
-            int2str(value));
+            
+            hws.assignin(pname, value);
             parameter_value_row(length(parameter_value_row)+1) = value; 
     end
 
-    cost = 0;
-    latency = 0;
-    scalability = 0;
-    reliability = 0;
-    delta_cost = 0;
-    delta_time = 0;
-    delta_reliability = 0;
-    delta_fleet = 0;
-    quality_metrics_row = [];
+    hws.saveToSource;
+    hws.reload;
 
-    for subruns = 1:subruns_limit
-        % Set scenario parameters
-        for i = 1:length(sb_parameter_names)
-            set_param(model_name + source_block_name, sb_parameter_names(i), ...
-                sb_parameter_values(subruns,i))
+    qm_row_temp = [0,0,0,0];
+    delta_row = [0,0,0,0];
+    qm_row = [];
+
+    for subruns = 1:2
+        hws = get_param(model_name, 'modelworkspace');
+        hws.DataSource = 'MAT-file';
+        hws.FileName = 'params';
+
+
+        % Set fleet size
+        for i = 1:length(sb_parameter_values)
+            hws.assignin(sb_parameter_names(i), sb_parameter_values(subruns,i));
         end
+
+        hws.saveToSource;
+        hws.reload;
+       
         % Run simulation
         simdata = sim(model_file);
 
         % Sum quality measures
+        
         for qm = 1:length(sout_info)
-            qm_temp = eval(sout_info(qm,1));
-            latency = latency + qm_temp(1);
-            cost = cost + qm_temp(2);
-            reliability = reliability + qm_temp(3);
-            scalability = scalability + qm_temp(4);
+            eval_string = "simdata." + sout_info(qm,1) + ".Data(:,:,end)";
+            qm_temp = eval(eval_string);
+            qm_row_temp = qm_row_temp + qm_temp;
         end
-        quality_metrics_row = [quality_metrics_row; [latency, cost, reliability, scalability]];       
+        qm_row = [qm_row; [qm_row_temp]];       
     end
 
-    first = quality_metrics_row(1,1:3);
-    second = quality_metrics_row(2,1:3);
-    delta = (second - first)/(str2double(sb_parameter_values(2,4))-str2double(sb_parameter_values(1,4)));
+    first = qm_row(1,1:3);
+    second = qm_row(2,1:3);
+    delta = (second - first)/(sb_parameter_values(2,4)-sb_parameter_values(1,4));
 
-    quality_metrics_row = quality_metrics_row(1,:) + quality_metrics_row(2,:);
-    quality_metrics_row(4) =  quality_metrics_row(4) + sum(delta,"all");
+    qm_row = qm_row(1,:) + qm_row(2,:);
+    qm_row(4) =  qm_row(4) + sum(delta,"all");
 
     parameter_values = [parameter_values;parameter_value_row];
-    quality_metrics= [quality_metrics;quality_metrics_row];
+    quality_metrics = [quality_metrics;qm_row];
 
     % Progress print
     if (mod(runs,2) == 0)
