@@ -6,17 +6,17 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-topology_script = 'bb_kinlam.m';
+topology_script = 'bb_kinlam_ver2.m';
+topology_name = "bb-kinlam_test";
 % Data Source (Fleet)
 source_block_name = "Constant Fleet";
-sb_parameter_names = ["time","message_size","frequency","fleet_size"];
-subruns_limit = 2;
+sb_parameter_names = ["simulation_time","message_size","fleet_size"];
 sb_parameter_values = [...
-    ["10", "0.008", "1", "1000"];...
-    ["10","0.008", "1", "10000"]...
+    [10, 0.008,1000];...
+    [10,0.008,10000]...
     ];
 % Limit number of simulations to run. (-1) = all simulations
-simulation_limit = 15000;
+simulation_limit = 15;
 % Suppress warnings
 %#ok<*NBRAK2> 
 %#ok<*AGROW> 
@@ -24,6 +24,8 @@ simulation_limit = 15000;
 %------------------------ Model Initiation  -----------------------------%
 run(topology_script);
 load_system(model_file);
+%set_param(model_name,"FastRestart","on");
+%set_param(model_name,"SimulationMode", "normal");
 %-------------------- Simulation setup creation -------------------------%
 % Read all "blockname.m" files
 out_index = 1;
@@ -54,130 +56,95 @@ for i = 1:length(blocks)
     
 end
 %--------------------------- Simulation ---------------------------------%
-
-
 for i = 1:height(parameter_info)
     parameter_names(i) = parameter_info(i,2);
 end
 
-parameter_values = [];
-quality_metrics = [];
- 
-sec = 0;
-minut = 0;
-hour = 0;
-comp_time = 0;
-remaining_time_str = "";
+parameter_values = [zeros(simulation_limit,height(parameter_info))];
 
-for runs = 1:simulation_limit
-    parameter_value_row = [];
+% Define the model name and configuration set
+cs = getActiveConfigSet(model_name);
 
-    for i = 1:height(parameter_info)
-            pinfo_row = parameter_info(i,:);
-            
-            pname = pinfo_row(2);
-            dist = pinfo_row(3);
-    
-            step = str2double(pinfo_row(6));
-            min = str2double(pinfo_row(4));
-            max = str2double(pinfo_row(5));
-    
-            switch dist
-                case "cont"
-                    lower = round(min/step);
-                    upper = round(max/step);
-                    value = randi([lower,upper])*step;
-                case "log"
-                    lower = log10(min);
-                    upper = log10(max);
-                    v = logspace(lower, upper, 100);
-                    w = round(v / step) * step;
-                    value = w(randi(length(w)));
-                case "bool"
-                    value = randi([min,max]);
-                otherwise
-                    error("Unknown distribution of parameter: " + pname)
-            end
-    
-            set_param(model_name + pinfo_row(1), pname, ...
-            int2str(value));
-            parameter_value_row(length(parameter_value_row)+1) = value; 
-    end
+% Set the simulation mode to 'rapid-accelerator'
+set_param(model_name,'SimulationMode','normal');
 
-    cost = 0;
-    latency = 0;
-    scalability = 0;
-    reliability = 0;
-    delta_cost = 0;
-    delta_time = 0;
-    delta_reliability = 0;
-    delta_fleet = 0;
-    quality_metrics_row = [];
+% Create an array of Simulink.SimulationInput objects
+simIn = arrayfun(@(x) Simulink.SimulationInput(model_name), ones(1,simulation_limit*2));
 
-    for subruns = 1:subruns_limit
-        % Set scenario parameters
-        for i = 1:length(sb_parameter_names)
-            set_param(model_name + source_block_name, sb_parameter_names(i), ...
-                sb_parameter_values(subruns,i))
+% Specify the variable to change and its new value for each object in the array
+idx = 1;
+for i = 1:simulation_limit
+   for j = 1:height(parameter_info)
+        pinfo_row = parameter_info(j,:);
+        
+        pname = pinfo_row(2);
+        dist = pinfo_row(3);
+
+        step = str2double(pinfo_row(6));
+        min = str2double(pinfo_row(4));
+        max = str2double(pinfo_row(5));
+
+        switch dist
+            case "cont"
+                lower = round(min/step);
+                upper = round(max/step);
+                value = randi([lower,upper])*step;
+            case "log"
+                lower = log10(min);
+                upper = log10(max);
+                v = logspace(lower, upper, 100);
+                w = round(v / step) * step;
+                value = w(randi(length(w)));
+            case "bool"
+                value = randi([min,max]);
+            otherwise
+                error("Unknown distribution of parameter: " + pname)
         end
-        % Run simulation
-        simdata = sim(model_file);
-
-        % Sum quality measures
-        for qm = 1:length(sout_info)
-            qm_temp = eval(sout_info(qm,1));
-            latency = latency + qm_temp(1);
-            cost = cost + qm_temp(2);
-            reliability = reliability + qm_temp(3);
-            scalability = scalability + qm_temp(4);
-        end
-        quality_metrics_row = [quality_metrics_row; [latency, cost, reliability, scalability]];       
-    end
-
-    first = quality_metrics_row(1,1:3);
-    second = quality_metrics_row(2,1:3);
-    delta = (second - first)/(str2double(sb_parameter_values(2,4))-str2double(sb_parameter_values(1,4)));
-
-    quality_metrics_row = quality_metrics_row(1,:) + quality_metrics_row(2,:);
-    quality_metrics_row(4) =  quality_metrics_row(4) + sum(delta,"all");
-
-    parameter_values = [parameter_values;parameter_value_row];
-    quality_metrics= [quality_metrics;quality_metrics_row];
-
-    % Progress print
-    if (mod(runs,2) == 0)
-        comp_time = comp_time + toc;
     
-        remaining_runs = simulation_limit-runs;
-        remaining_time = remaining_runs * (comp_time/runs);
-    
-        if remaining_time >= 3600
-            seconds_left = mod(remaining_time,3600);
-            hour = (remaining_time - seconds_left)/3600;
-            remaining_time = seconds_left;
-        end
-        if remaining_time >= 60
-            seconds_left = mod(remaining_time,60);
-            minut = (remaining_time - seconds_left)/60;
-            remaining_time = seconds_left;
-        end
-        sec = round(remaining_time);
-    
-        remaining_time_str = "Remaining Time: " + hour + "h" + minut + "m" + sec + "sec";
-    end
+        simIn(idx) = simIn(idx).setVariable(pname, value);
+        simIn(idx+1) = simIn(idx+1).setVariable(pname, value);
+   
+       parameter_values(i,j) = value;
+   end
 
-    disp("Running " + runs + " of " + ...
-            simulation_limit + "( " ...
-            + round((runs/(simulation_limit)) * 100) + "% )" ...
-            + remaining_time_str); 
-    remaining_time_str = "";
-    tic;
+   for k = 1:length(sb_parameter_values)
+        simIn(idx) = simIn(idx).setVariable(sb_parameter_names(k), sb_parameter_values(1,k));
+        simIn(idx+1) = simIn(idx+1).setVariable(sb_parameter_names(k), sb_parameter_values(2,k));
+   end
+
+   idx = idx + 2;
+
+   simIn(i) = simIn(i).setModelParameter('SimulationMode', 'normal');
 end
 
-out_frame = [blocks, parameter_names, ...
+out = parsim(simIn, 'ShowProgress', 'on');
+
+% Sum quality measures
+quality_metrics = [];
+qm_temp1 = [0,0,0,0];
+qm_temp2 = [0,0,0,0];
+
+for i = 1:2:length(out)
+    for j = 1:length(sout_info)
+        eval_string1 = "out(" + i + ")." + sout_info(j,1) + ".Data(:,:,end)";
+        eval_string2 = "out(" + (i+1) + ")." + sout_info(j,1) + ".Data(:,:,end)";
+        qm_temp1 = qm_temp1 + eval(eval_string1);
+        qm_temp2 = qm_temp2 + eval(eval_string2);
+    end
+    first = qm_temp1(1:3);
+    second = qm_temp2(1:3);
+    delta = (second - first)/(sb_parameter_values(2,3)-sb_parameter_values(1,3));
+    
+    qm_row = qm_temp1 + qm_temp2;
+    qm_row(4) =  qm_row(4) + sum(delta,"all");
+    quality_metrics = [quality_metrics;qm_row];
+    qm_temp = [];
+end
+        
+out_frame = ["Topology", parameter_names, ...
     "latency", "cost", "reliability", "scalability"];
 for i = 1:height(parameter_values)
-    out_frame_row = [ones(1,length(blocks)), parameter_values(i,:), quality_metrics(i,:)];
+    out_frame_row = [topology_name, parameter_values(i,:), quality_metrics(i,:)];
     out_frame = [out_frame;out_frame_row];
 end
 
