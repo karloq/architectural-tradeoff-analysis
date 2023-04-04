@@ -6,14 +6,13 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-topology_script = 'bb_kinlam_ver2.m';
-topology_name = "bb-kinlam_test";
+topology_script = 'bboo_con.m';
+topology_name = "bboo_con_test";
 % Data Source (Fleet)
-source_block_name = "Constant Fleet";
-sb_parameter_names = ["simulation_time","message_size","fleet_size"];
+sb_parameter_names = ["message_size","fleet_size", "simulation_time"];
 sb_parameter_values = [...
-    [10, 0.008,1000];...
-    [10,0.008,10000]...
+    [0.008,1000,10];...
+    [0.008,10000,10]...
     ];
 % Limit number of simulations to run. (-1) = all simulations
 simulation_limit = 15;
@@ -133,7 +132,7 @@ for i = 1:2:length(out)
     end
     first = qm_temp1(1:3);
     second = qm_temp2(1:3);
-    delta = (second - first)/(sb_parameter_values(2,3)-sb_parameter_values(1,3));
+    delta = (second - first)/(sb_parameter_values(2,2)-sb_parameter_values(1,2));
     
     qm_row = qm_temp1 + qm_temp2;
     qm_row(4) =  qm_row(4) + sum(delta,"all");

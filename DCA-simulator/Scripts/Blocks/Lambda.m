@@ -1,7 +1,7 @@
 block_name = "Lambda";
 
 a = ["lambda_parallel_instances","cont", 1, 100, 1];
-b = ["lambda_allocated_memory","log", 128, 1000, 64];
+b = ["lambda_allocated_memory","log", 128, 10000, 64];
 
 parameter_name =    [a(1),b(1)];
 value_dist =        [a(2),b(2)];
