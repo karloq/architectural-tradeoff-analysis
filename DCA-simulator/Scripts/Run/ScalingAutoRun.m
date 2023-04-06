@@ -6,8 +6,8 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-topology_script = 'bboo_con.m';
-topology_name = "bboo_con_test";
+topology_script = 'beachball_topo.m';
+topology_name = "beachball_test";
 % Data Source (Fleet)
 sb_parameter_names = ["message_size","fleet_size", "simulation_time"];
 sb_parameter_values = [...
