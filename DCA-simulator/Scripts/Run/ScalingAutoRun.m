@@ -6,8 +6,8 @@ clear;
 %--------------------- Simulation information ---------------------------%
 
 % Model name to be simulated
-topology_script = 'beachball_topo.m';
-topology_name = "beachball_test";
+topology_script = 'blackbanana_iotcon_topo.m';
+topology_name = "blackbanana_iotcon_test";
 % Data Source (Fleet)
 sb_parameter_names = ["message_size","fleet_size", "simulation_time"];
 sb_parameter_values = [...
@@ -122,13 +122,21 @@ out = parsim(simIn, 'ShowProgress', 'on');
 quality_metrics = [];
 qm_temp1 = [0,0,0,0];
 qm_temp2 = [0,0,0,0];
+qm_debug = ["sout", "cost","time","reliability", "scalability"];
 
 for i = 1:2:length(out)
     for j = 1:length(sout_info)
         eval_string1 = "out(" + i + ")." + sout_info(j,1) + ".Data(:,:,end)";
         eval_string2 = "out(" + (i+1) + ")." + sout_info(j,1) + ".Data(:,:,end)";
-        qm_temp1 = qm_temp1 + eval(eval_string1);
-        qm_temp2 = qm_temp2 + eval(eval_string2);
+        q1 = eval(eval_string1);
+        q2 = eval(eval_string2);
+        %q1(isnan(q1))=0;
+        %q2(isnan(q2))=0;
+        qm_debug_row1 = [sout_info(j,1),q1];
+        qm_debug_row2 = [sout_info(j,1),q2];
+        qm_debug = [qm_debug;qm_debug_row1;qm_debug_row2];
+        qm_temp1 = qm_temp1 + q1;
+        qm_temp2 = qm_temp2 + q2;
     end
     first = qm_temp1(1:3);
     second = qm_temp2(1:3);
@@ -137,7 +145,9 @@ for i = 1:2:length(out)
     qm_row = qm_temp1 + qm_temp2;
     qm_row(4) =  qm_row(4) + sum(delta,"all");
     quality_metrics = [quality_metrics;qm_row];
-    qm_temp = [];
+    qm_row = [0,0,0,0];
+    qm_temp1 = [0,0,0,0];
+    qm_temp2 = [0,0,0,0];
 end
         
 out_frame = ["Topology", parameter_names, ...
