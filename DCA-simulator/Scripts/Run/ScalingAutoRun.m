@@ -14,7 +14,7 @@ sb_parameter_values = [...
     [0.008,1000,10];...
     [0.008,10000,10]...
     ];
-% Limit number of simulations to run. (-1) = all simulations
+
 simulation_limit = 15;
 % Suppress warnings
 %#ok<*NBRAK2> 
@@ -158,7 +158,7 @@ for i = 1:height(parameter_values)
 end
 
 % Create filename
-model_string = string(model_name(1:end-1));
+model_string = string(model_name(1:end));
 date_string = strrep(erase(string(datetime)," "), ':', '-');
 out_filename =  model_string + '_' + date_string + '.csv';
 
