@@ -32,13 +32,13 @@ sb_parameter_values = [...
     [0.008,10000,10]...
     ];
 
-simulation_limit = 100;
+simulation_limit = 3000;
 % Suppress warnings
 %#ok<*NBRAK2>
 %#ok<*AGROW>
 %#ok<*SAGROW>
 
-for topo = 1:length(topology_script)
+for topo = 4:length(topology_script)
     %------------------------ Model Initiation  -----------------------------%
     run(topology_script(topo));
     load_system(model_file);
@@ -142,7 +142,7 @@ for topo = 1:length(topology_script)
     quality_metrics = [];
     qm_temp1 = [0,0,0,0];
     qm_temp2 = [0,0,0,0];
-    qm_debug = ["sout", "cost","time","reliability", "scalability"];
+    qm_debug = ["sout", "latency","cost","reliability", "scalability"];
     clear('qm_row');
     clear('out_frame');
 
@@ -160,12 +160,24 @@ for topo = 1:length(topology_script)
             qm_temp1 = qm_temp1 + q1;
             qm_temp2 = qm_temp2 + q2;
         end
-        first = qm_temp1(1:3);
-        second = qm_temp2(1:3);
-        delta = (second - first)/(sb_parameter_values(2,2)-sb_parameter_values(1,2));
+        load1 = sb_parameter_values(1,2);
+        load2 = sb_parameter_values(2,2);
+        rload = sb_parameter_values(2,2)/sb_parameter_values(1,2);
+        first = qm_temp1(1:2);
+        second = qm_temp2(1:2);
+        l1 = first(1)/load1;
+        l2 = second(1)/load2;
+        c1 = first(2)/load1;
+        c2 = second(2)/load2;
+        eps = 1e-6;
+
+        t1 = l1 + c1;
+        t2 = l2 + c2;
+
+        scalability = (t2-t1)/t1;
 
         qm_row = qm_temp1 + qm_temp2;
-        qm_row(4) =  qm_row(4) + sum(delta,"all");
+        qm_row(4) =  scalability;
         quality_metrics = [quality_metrics;qm_row];
         qm_row = [0,0,0,0];
         qm_temp1 = [0,0,0,0];

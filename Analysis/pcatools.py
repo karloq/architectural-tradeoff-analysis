@@ -30,8 +30,7 @@ def paretoOptimize(df, target_columns, target_objectives, iterations):
        
     return df_pareto
 
-def printPareto(df, df_pareto, target_columns, invert_axles):
-    
+def printPareto(df, df_pareto, target_columns, invert_axles): 
     legend_elements = [Line2D([0], [0], marker='o', color='w', label='Non-optimal Sample',
                           markerfacecolor='b', markersize=8),
                    Line2D([0], [0], marker='o', color='w', label='Pareto Optimal Sample',
@@ -46,7 +45,59 @@ def printPareto(df, df_pareto, target_columns, invert_axles):
         plt.gca().invert_xaxis()
     plt.legend(handles=legend_elements, loc='lower left')
     plt.show()
-    
+
+def scatterPrint(df, x, y, x_uplim, x_lowlim, y_uplim, y_lowlim, invert_axles):
+    if x_lowlim != None:
+        df = df.loc[df[x] > x_lowlim]
+    if x_uplim != None:
+        df = df.loc[df[x] < x_uplim]
+    if y_lowlim != None:
+        df = df.loc[df[y] > y_lowlim]
+    if y_uplim != None:
+        df = df.loc[df[y] < y_uplim]
+    plt.scatter(df[x], df[y], color='b')
+    plt.xlabel(x)
+    plt.ylabel(y)
+    if invert_axles:
+        plt.gca().invert_yaxis()
+        plt.gca().invert_xaxis()
+    plt.show()
+
+def topoScatterPrint(df, x, y, x_uplim, x_lowlim, y_uplim, y_lowlim, invert_axles):
+    if x_lowlim != None:
+        df = df.loc[df[x] > x_lowlim]
+    if x_uplim != None:
+        df = df.loc[df[x] < x_uplim]
+    if y_lowlim != None:
+        df = df.loc[df[y] > y_lowlim]
+    if y_uplim != None:
+        df = df.loc[df[y] < y_uplim]
+
+    colors = np.argmax(df, axis=1)
+
+    # Define a colormap that maps each column to a color
+    colormap = plt.cm.get_cmap('rainbow', 7)
+
+    # Create the main scatterplot and set the colors
+    fig, ax = plt.subplots()
+    scatter = ax.scatter(df[x], df[y], c=colors, cmap=colormap)
+
+    legend_elements = [Line2D([0], [0], marker='o', color='w', label='1.1', markerfacecolor=colormap(0), markersize=10),
+                   Line2D([0], [0], marker='o', color='w', label='1.2', markerfacecolor=colormap(1), markersize=10),
+                   Line2D([0], [0], marker='o', color='w', label='1.3', markerfacecolor=colormap(2), markersize=10),
+                   Line2D([0], [0], marker='o', color='w', label='1.4', markerfacecolor=colormap(3), markersize=10),
+                   Line2D([0], [0], marker='o', color='w', label='2.1', markerfacecolor=colormap(4), markersize=10),
+                   Line2D([0], [0], marker='o', color='w', label='2.2', markerfacecolor=colormap(5), markersize=10),
+                   Line2D([0], [0], marker='o', color='w', label='3.0', markerfacecolor=colormap(6), markersize=10)]
+    ax.legend(handles=legend_elements)
+
+    plt.xlabel(x)
+    plt.ylabel(y)
+    if invert_axles:
+        plt.gca().invert_yaxis()
+        plt.gca().invert_xaxis()
+    plt.show()
+        
 def printParameterScatter(df, parameter_names, color_variable, plot_title):
     df_scatter = df.copy()
     
