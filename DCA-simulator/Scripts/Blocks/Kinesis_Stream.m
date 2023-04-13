@@ -2,7 +2,7 @@ block_name = "Kinesis Stream";
 
 a = ["kinesis_ondemand","bool", 0, 1, 1];
 b = ["kinesis_efos","cont", 0, 1, 1];
-c = ["kinesis_records","log", 500, 10000, 50];
+c = ["kinesis_records","cont", 200, 4000, 50];
 d = ["kinesis_peak","cont", 0, 1, 0.1];
 
 parameter_name  =    [a(1),b(1),c(1),d(1)];

@@ -1,6 +1,6 @@
 block_name = "EC2";
 
-a = ["ec2_vcpus","log", 1, 16, 2];
+a = ["ec2_vcpus","cont", 1, 16, 2];
 b = ["ec2_memorylevel","cont", 1, 3, 1];
 c = ["ec2_instances","cont", 1, 100, 1];
 

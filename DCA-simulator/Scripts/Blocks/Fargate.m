@@ -1,6 +1,6 @@
 block_name = "Fargate";
 
-a = ["fargate_vcpus","log", 1, 16, 2];
+a = ["fargate_vcpus","cont", 1, 16, 2];
 b = ["fargate_memorylevel","cont", 1, 3, 1];
 
 parameter_name  =    [a(1),b(1)];

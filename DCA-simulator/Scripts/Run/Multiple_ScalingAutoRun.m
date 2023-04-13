@@ -17,7 +17,7 @@ topology_script = ["beachball_topo.m",...
     "blackbanana_kinlam_topo.m", ...
     "bamboo_con_topo.m", ...
     "bamboo_lam_topo.m"];...
-topology_name = ["3", ...
+topology_name = ["3.0", ...
 "1.1", ...
 "1.2", ...
 "1.3", ...
@@ -28,17 +28,17 @@ topology_name = ["3", ...
 % Data Source (Fleet)
 sb_parameter_names = ["message_size","fleet_size", "simulation_time"];
 sb_parameter_values = [...
-    [0.008,1000,10];...
-    [0.008,10000,10]...
+    [0.008,1000,900];...
+    [0.008,10000,900]...
     ];
 
-simulation_limit = 3000;
+simulation_limit = 2000;
 % Suppress warnings
 %#ok<*NBRAK2>
 %#ok<*AGROW>
 %#ok<*SAGROW>
 
-for topo = 4:length(topology_script)
+for topo = 6:7%length(topology_script)
     %------------------------ Model Initiation  -----------------------------%
     run(topology_script(topo));
     load_system(model_file);
@@ -86,6 +86,8 @@ for topo = 4:length(topology_script)
 
     % Set the simulation mode to 'rapid-accelerator'
     set_param(model_name,'SimulationMode','normal');
+    set_param(model_name, 'StopTime', int2str(sb_parameter_values(1,3)*2))
+    save_system(model_name);
 
     % Create an array of Simulink.SimulationInput objects
     simIn = arrayfun(@(x) Simulink.SimulationInput(model_name), ones(1,simulation_limit*2));
@@ -108,12 +110,6 @@ for topo = 4:length(topology_script)
                     lower = round(min/step);
                     upper = round(max/step);
                     value = randi([lower,upper])*step;
-                case "log"
-                    lower = log10(min);
-                    upper = log10(max);
-                    v = logspace(lower, upper, 100);
-                    w = round(v / step) * step;
-                    value = w(randi(length(w)));
                 case "bool"
                     value = randi([min,max]);
                 otherwise
@@ -142,7 +138,7 @@ for topo = 4:length(topology_script)
     quality_metrics = [];
     qm_temp1 = [0,0,0,0];
     qm_temp2 = [0,0,0,0];
-    qm_debug = ["sout", "latency","cost","reliability", "scalability"];
+    qm_debug = ["sout", "latency","cost","complexity", "scalability"];
     clear('qm_row');
     clear('out_frame');
 
@@ -171,12 +167,16 @@ for topo = 4:length(topology_script)
         c2 = second(2)/load2;
         eps = 1e-6;
 
+        scalability = (second - first)/first;
+
         t1 = l1 + c1;
         t2 = l2 + c2;
 
-        scalability = (t2-t1)/t1;
+        %scalability = (t2-t1)/t1;
 
-        qm_row = qm_temp1 + qm_temp2;
+        %qm_row = qm_temp1 + qm_temp2;
+        % Save only low load
+        qm_row = qm_temp1;
         qm_row(4) =  scalability;
         quality_metrics = [quality_metrics;qm_row];
         qm_row = [0,0,0,0];
@@ -185,7 +185,7 @@ for topo = 4:length(topology_script)
     end
 
     out_frame = ["Topology", parameter_names, ...
-        "latency", "cost", "reliability", "scalability"];
+        "latency", "cost", "complexity", "scalability"];
     for i = 1:height(parameter_values)
         out_frame_row = [topology_name(topo), parameter_values(i,:), quality_metrics(i,:)];
         out_frame = [out_frame;out_frame_row];

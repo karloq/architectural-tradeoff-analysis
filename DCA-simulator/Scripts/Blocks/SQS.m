@@ -1,6 +1,6 @@
 block_name = "SQS";
 
-a = ["sqs_queue_size","log", 8, 1000, 1];
+a = ["sqs_queue_size","cont", 8, 1000, 8];
 b = ["sqs_timeout","cont", 1, 10, 1];
 
 parameter_name =    [a(1),b(1)];
