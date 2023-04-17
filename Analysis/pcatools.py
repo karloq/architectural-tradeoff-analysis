@@ -11,17 +11,25 @@ from adjustText import adjust_text
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 from sklearn.preprocessing import MinMaxScaler
+import math
 
-def paretoOptimize(df, target_columns, target_objectives, iterations):
+def paretoOptimize(df, target_columns, target_objectives, top_optimized_percentage):
     target_df = df[target_columns]
 
     ct_nonoptimal = target_df.copy()
     df_nonoptimal = df.copy()
 
-    for i in range(iterations):
+    removed_rows = 0
+    full_length = len(target_df)
+
+    if(top_optimized_percentage >= 1) :
+        raise ValueError("Percentage must be smaller than 100% (1.0)")
+
+    while full_length-removed_rows > (1-top_optimized_percentage)*full_length :
         mask = paretoset(ct_nonoptimal, sense=target_objectives)
         masklist = mask.tolist()
         indices = [index for (index, item) in enumerate(masklist) if item == True]
+        removed_rows += len(indices)
         ct_nonoptimal.drop(ct_nonoptimal.index[indices], inplace=True)
         df_nonoptimal.drop(df_nonoptimal.index[indices], inplace=True)
         
@@ -46,6 +54,65 @@ def printPareto(df, df_pareto, target_columns, invert_axles):
     plt.legend(handles=legend_elements, loc='lower left')
     plt.show()
 
+def printParetoOpt(df, df_5,df_15,df_50,df_75, invert_axles, plot_title): 
+
+    colors = ('firebrick','orangered', 'orange', 'gold','chartreuse')
+    legend_elements = [Line2D([0], [0], marker='o', color='w', label='Top 5%',
+                          markerfacecolor=colors[4], markersize=8),
+                        Line2D([0], [0], marker='o', color='w', label='Top 15%',
+                          markerfacecolor=colors[3], markersize=8),
+                        Line2D([0], [0], marker='o', color='w', label='Top 50%',
+                          markerfacecolor=colors[2], markersize=8),
+                        Line2D([0], [0], marker='o', color='w', label='Top 75%',
+                          markerfacecolor=colors[1], markersize=8),
+                        Line2D([0], [0], marker='o', color='w', label='Non-optimal Samples',
+                          markerfacecolor=colors[0], markersize=8)]
+    
+    plt.scatter(df.latency, df.cost, color=colors[0])
+    plt.scatter(df_75.latency, df_75.cost, color=colors[1])
+    plt.scatter(df_50.latency, df_50.cost, color=colors[2])
+    plt.scatter(df_15.latency, df_15.cost, color=colors[3])
+    plt.scatter(df_5.latency, df_5.cost, color=colors[4])
+    plt.ylabel("Cost")
+    plt.xlabel("Latency")
+    if plot_title != None :
+        plt.title(plot_title)
+    if invert_axles:
+        plt.gca().invert_yaxis()
+        plt.gca().invert_xaxis()
+    plt.legend(handles=legend_elements, loc='upper right')
+    plt.show()
+
+    plt.scatter(df.complexity, df.cost, color=colors[0])
+    plt.scatter(df_75.complexity, df_75.cost, color=colors[1])
+    plt.scatter(df_50.complexity, df_50.cost, color=colors[2])
+    plt.scatter(df_15.complexity, df_15.cost, color=colors[3])
+    plt.scatter(df_5.complexity, df_5.cost, color=colors[4])
+    plt.ylabel("Cost")
+    plt.xlabel("Complexity")
+    if plot_title != None :
+        plt.title(plot_title)
+    if invert_axles:
+        plt.gca().invert_yaxis()
+        plt.gca().invert_xaxis()
+    plt.legend(handles=legend_elements, loc='upper right')
+    plt.show()
+
+    plt.scatter(df.scalability, df.cost, color=colors[0])
+    plt.scatter(df_75.scalability, df_75.cost, color=colors[1])
+    plt.scatter(df_50.scalability, df_50.cost, color=colors[2])
+    plt.scatter(df_15.scalability, df_15.cost, color=colors[3])
+    plt.scatter(df_5.scalability, df_5.cost, color=colors[4])
+    plt.ylabel("Cost")
+    plt.xlabel("Load Sensitivity")
+    if plot_title != None :
+        plt.title(plot_title)
+    if invert_axles:
+        plt.gca().invert_yaxis()
+        plt.gca().invert_xaxis()
+    plt.legend(handles=legend_elements, loc='upper right')
+    plt.show()
+
 def scatterPrint(df, x, y, x_uplim, x_lowlim, y_uplim, y_lowlim, invert_axles):
     if x_lowlim != None:
         df = df.loc[df[x] > x_lowlim]
@@ -64,6 +131,8 @@ def scatterPrint(df, x, y, x_uplim, x_lowlim, y_uplim, y_lowlim, invert_axles):
     plt.show()
 
 def topoScatterPrint(df, x, y, invert_axles):
+
+    df.reindex(df.index)
     topologies = df['Topology'].unique().tolist()
 
     # Define a colormap that maps each column to a color
@@ -131,8 +200,11 @@ def createPCA(correlation_matrix):
 def printScree(pca, plot_title):
     # Calculate percentage of variation that each PC (principal component) accounts for
     per_var = np.round(pca.explained_variance_ratio_*100, decimals=1)
+
+    per_var = per_var[0:5]
     # Create labels
     labels = ['PC' + str(x) for x in range(1, len(per_var)+1)]
+
     # Plot scree plot
     plt.bar(x=range(1,len(per_var)+1), height=per_var, tick_label=labels)
     plt.ylabel('% of explained variance')
@@ -168,3 +240,127 @@ def printPCA(pca, pca_data, correlation_matrix, plot_title, categories, colormap
     texts = [plt.text(df_scaled.PC1[i], df_scaled.PC2[i], df_scaled.PC1.keys()[i]) for i in range(len(df_scaled.PC2))]
     adjust_text(texts)
     plt.show()
+
+def printRadarPlots(df_mean, fill_color,rows,columns, lbl_correction, figsize, plot_title) :
+    angles = [0.0, 1.5707963267948966, 3.141592653589793, 4.71238898038469, 0.0]
+    # Create a figure with a 2x2 grid of subplots
+    fig, axs = plt.subplots(rows, columns, subplot_kw=dict(projection='polar'), figsize=figsize)
+
+    if plot_title != None :
+        fig.suptitle(plot_title, fontsize=16)
+
+    if rows > 1 :
+        idx = 0
+        for x in range(rows) :
+            for y in range(columns):
+                if (x*columns + y) >= len(df_mean) :
+                    break
+                mean_list = df_mean.iloc[idx].to_list()
+                mean_list.append(mean_list[0])
+                axs[x,y].plot(angles, mean_list, linewidth=2, linestyle='solid', c=fill_color[idx])
+                axs[x,y].fill(angles, mean_list, c=fill_color[idx], alpha=0.4)
+                axs[x,y].set_thetagrids(np.degrees(angles[:-1]), df_mean.columns)
+                axs[x,y].set_title("Topology " + str(df_mean.index[idx]), fontsize=12)
+                axs[x,y].grid(True)
+                axs[x,y].set_yticklabels([])
+                idx += 1
+    elif len(df_mean) == 1 :
+            mean_list = df_mean.iloc[0].to_list()
+            mean_list.append(mean_list[0])
+            axs.plot(angles, mean_list, linewidth=2, linestyle='solid', c=fill_color[0])
+            axs.fill(angles, mean_list, c=fill_color[0], alpha=0.4)
+            axs.set_thetagrids(np.degrees(angles[:-1]), df_mean.columns)
+            axs.set_title("Topology " + str(df_mean.index[0]), fontsize=12)
+            axs.grid(True)
+            axs.set_yticklabels([])
+    else:
+        idx = 0
+        for y in range(columns):
+            mean_list = df_mean.iloc[idx].to_list()
+            mean_list.append(mean_list[0])
+            axs[y].plot(angles, mean_list, linewidth=2, linestyle='solid', c=fill_color[idx])
+            axs[y].fill(angles, mean_list, c=fill_color[idx], alpha=0.4)
+            axs[y].set_thetagrids(np.degrees(angles[:-1]), df_mean.columns)
+            axs[y].set_title("Topology " + str(df_mean.index[idx]), fontsize=12)
+            axs[y].grid(True)
+            axs[y].set_yticklabels([])
+            idx += 1
+
+    # Hide the empty subplots
+    if len(df_mean) < columns*rows :
+        for i in range(rows):
+            for j in range(columns):
+                if i == rows-1 and j >= (columns)-((columns*rows)-len(df_mean)):
+                    axs[i, j].axis('off')
+
+    if len(df_mean) > 1 :
+        for i, ax in enumerate(axs.flat):
+            idx = 0
+            for label in ax.xaxis.get_ticklabels():
+                if idx == 0 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[0]))
+                if idx == 1 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[1]))
+                if idx == 2 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[2]))
+                if idx == 3 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[3]))
+
+                idx += 1
+        # Set the ylim for all subplots to be the same
+        for ax in axs.flat:
+            ax.set_ylim(0, math.ceil(df_mean.max().max()))
+    else :
+        idx = 0
+        for label in axs.xaxis.get_ticklabels():
+                if idx == 0 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[0]))
+                if idx == 1 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[1]))
+                if idx == 2 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[2]))
+                if idx == 3 :
+                    label.set_position((label.get_position()[0], label.get_position()[1]+lbl_correction[3]))
+
+                idx += 1
+
+
+    fig.subplots_adjust(left=0.1, bottom=0.1, right=0.9, top=0.9, wspace=1.2, hspace=0.2)
+
+    # Show the plot
+    plt.show()
+
+def filterData(df,topologies, latency_uplims,latency_lowlims,cost_uplims,cost_lowlims,complexity_uplims, complexity_lowlims, scalability_uplims, scalability_lowlims) :
+    for i, topo in enumerate(topologies):
+        if latency_uplims[i] is None:
+            latency_uplims[i] = df[(df.Topology == topo)].latency.max()
+        if latency_lowlims[i] is None:
+            latency_lowlims[i] = df[(df.Topology == topo)].latency.min()
+        if cost_uplims[i] is None:
+            cost_uplims[i] = df[(df.Topology == topo)].cost.max()
+        if cost_lowlims[i] is None:
+            cost_lowlims[i] = df[(df.Topology == topo)].cost.min()
+        if complexity_uplims[i] is None:
+            complexity_uplims[i] = df[(df.Topology == topo)].complexity.max()
+        if complexity_lowlims[i] is None:
+            complexity_lowlims[i] = df[(df.Topology == topo)].complexity.min()
+        if scalability_uplims[i] is None:
+            scalability_uplims[i] = df[(df.Topology == topo)].scalability.max()
+        if scalability_lowlims[i] is None:
+            scalability_lowlims[i] = df[(df.Topology == topo)].scalability.min()
+
+    df_filtered = pd.DataFrame()
+
+    for i, topo in enumerate(topologies) :
+        df1 = df[(df.Topology == topo) &
+            (df.latency <= latency_uplims[i]) & (df.latency >= latency_lowlims[i]) &
+            (df.cost <= cost_uplims[i]) & (df.cost >= cost_lowlims[i]) & 
+            (df.complexity <= complexity_uplims[i])& (df.complexity >= complexity_lowlims[i]) &
+            (df.scalability <= scalability_uplims[i])& (df.scalability >= scalability_lowlims[i])]
+
+        df_filtered = pd.concat([df_filtered, df1])
+
+    removed_rows = len(df) - len(df_filtered)
+    print("Filtered out {} rows of data".format(removed_rows))
+
+    return df_filtered
