@@ -12,6 +12,7 @@ from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 from sklearn.preprocessing import MinMaxScaler
 import math
+from sklearn.cluster import DBSCAN
 
 def paretoOptimize(df, target_columns, target_objectives, top_optimized_percentage):
     target_df = df[target_columns]
@@ -58,21 +59,21 @@ def printParetoOpt(df, df_5,df_15,df_50,df_75, invert_axles, plot_title):
 
     colors = ('firebrick','orangered', 'orange', 'gold','chartreuse')
     legend_elements = [Line2D([0], [0], marker='o', color='w', label='Top 5%',
-                          markerfacecolor=colors[4], markersize=8),
+                          markerfacecolor=colors[4], markersize=14),
                         Line2D([0], [0], marker='o', color='w', label='Top 15%',
-                          markerfacecolor=colors[3], markersize=8),
+                          markerfacecolor=colors[3], markersize=14),
                         Line2D([0], [0], marker='o', color='w', label='Top 50%',
-                          markerfacecolor=colors[2], markersize=8),
+                          markerfacecolor=colors[2], markersize=14),
                         Line2D([0], [0], marker='o', color='w', label='Top 75%',
-                          markerfacecolor=colors[1], markersize=8),
+                          markerfacecolor=colors[1], markersize=14),
                         Line2D([0], [0], marker='o', color='w', label='Non-optimal Samples',
-                          markerfacecolor=colors[0], markersize=8)]
+                          markerfacecolor=colors[0], markersize=14)]
     
-    plt.scatter(df.latency, df.cost, color=colors[0])
-    plt.scatter(df_75.latency, df_75.cost, color=colors[1])
-    plt.scatter(df_50.latency, df_50.cost, color=colors[2])
-    plt.scatter(df_15.latency, df_15.cost, color=colors[3])
-    plt.scatter(df_5.latency, df_5.cost, color=colors[4])
+    plt.scatter(df.Latency, df.Cost, color=colors[0])
+    plt.scatter(df_75.Latency, df_75.Cost, color=colors[1])
+    plt.scatter(df_50.Latency, df_50.Cost, color=colors[2])
+    plt.scatter(df_15.Latency, df_15.Cost, color=colors[3])
+    plt.scatter(df_5.Latency, df_5.Cost, color=colors[4])
     plt.ylabel("Cost")
     plt.xlabel("Latency")
     if plot_title != None :
@@ -83,11 +84,11 @@ def printParetoOpt(df, df_5,df_15,df_50,df_75, invert_axles, plot_title):
     plt.legend(handles=legend_elements, loc='upper right')
     plt.show()
 
-    plt.scatter(df.complexity, df.cost, color=colors[0])
-    plt.scatter(df_75.complexity, df_75.cost, color=colors[1])
-    plt.scatter(df_50.complexity, df_50.cost, color=colors[2])
-    plt.scatter(df_15.complexity, df_15.cost, color=colors[3])
-    plt.scatter(df_5.complexity, df_5.cost, color=colors[4])
+    plt.scatter(df.Complexity, df.Cost, color=colors[0])
+    plt.scatter(df_75.Complexity, df_75.Cost, color=colors[1])
+    plt.scatter(df_50.Complexity, df_50.Cost, color=colors[2])
+    plt.scatter(df_15.Complexity, df_15.Cost, color=colors[3])
+    plt.scatter(df_5.Complexity, df_5.Cost, color=colors[4])
     plt.ylabel("Cost")
     plt.xlabel("Complexity")
     if plot_title != None :
@@ -98,11 +99,11 @@ def printParetoOpt(df, df_5,df_15,df_50,df_75, invert_axles, plot_title):
     plt.legend(handles=legend_elements, loc='upper right')
     plt.show()
 
-    plt.scatter(df.scalability, df.cost, color=colors[0])
-    plt.scatter(df_75.scalability, df_75.cost, color=colors[1])
-    plt.scatter(df_50.scalability, df_50.cost, color=colors[2])
-    plt.scatter(df_15.scalability, df_15.cost, color=colors[3])
-    plt.scatter(df_5.scalability, df_5.cost, color=colors[4])
+    plt.scatter(df["Load Sensitivity"], df.Cost, color=colors[0])
+    plt.scatter(df_75["Load Sensitivity"], df_75.Cost, color=colors[1])
+    plt.scatter(df_50["Load Sensitivity"], df_50.Cost, color=colors[2])
+    plt.scatter(df_15["Load Sensitivity"], df_15.Cost, color=colors[3])
+    plt.scatter(df_5["Load Sensitivity"], df_5.Cost, color=colors[4])
     plt.ylabel("Cost")
     plt.xlabel("Load Sensitivity")
     if plot_title != None :
@@ -151,6 +152,7 @@ def topoScatterPrint(df, x, y, invert_axles):
 
     plt.xlabel(x)
     plt.ylabel(y)
+    plt.legend(handles=legend_elements, loc='upper right')
     if invert_axles:
         plt.gca().invert_yaxis()
         plt.gca().invert_xaxis()
@@ -240,8 +242,8 @@ def printPCA(pca, pca_data, correlation_matrix, plot_title, categories, colormap
     texts = [plt.text(df_scaled.PC1[i], df_scaled.PC2[i], df_scaled.PC1.keys()[i]) for i in range(len(df_scaled.PC2))]
     adjust_text(texts)
     plt.show()
-
-def printRadarPlots(df_mean, fill_color,rows,columns, lbl_correction, figsize, plot_title) :
+    
+def printRadarPlots(df_mean, topo_names, fill_color,rows,columns, lbl_correction, figsize, plot_title) :
     angles = [0.0, 1.5707963267948966, 3.141592653589793, 4.71238898038469, 0.0]
     # Create a figure with a 2x2 grid of subplots
     fig, axs = plt.subplots(rows, columns, subplot_kw=dict(projection='polar'), figsize=figsize)
@@ -260,7 +262,7 @@ def printRadarPlots(df_mean, fill_color,rows,columns, lbl_correction, figsize, p
                 axs[x,y].plot(angles, mean_list, linewidth=2, linestyle='solid', c=fill_color[idx])
                 axs[x,y].fill(angles, mean_list, c=fill_color[idx], alpha=0.4)
                 axs[x,y].set_thetagrids(np.degrees(angles[:-1]), df_mean.columns)
-                axs[x,y].set_title("Topology " + str(df_mean.index[idx]), fontsize=12)
+                axs[x,y].set_title(topo_names[idx], fontsize=12)
                 axs[x,y].grid(True)
                 axs[x,y].set_yticklabels([])
                 idx += 1
@@ -270,7 +272,7 @@ def printRadarPlots(df_mean, fill_color,rows,columns, lbl_correction, figsize, p
             axs.plot(angles, mean_list, linewidth=2, linestyle='solid', c=fill_color[0])
             axs.fill(angles, mean_list, c=fill_color[0], alpha=0.4)
             axs.set_thetagrids(np.degrees(angles[:-1]), df_mean.columns)
-            axs.set_title("Topology " + str(df_mean.index[0]), fontsize=12)
+            axs.set_title(topo_names[idx], fontsize=12)
             axs.grid(True)
             axs.set_yticklabels([])
     else:
@@ -281,7 +283,7 @@ def printRadarPlots(df_mean, fill_color,rows,columns, lbl_correction, figsize, p
             axs[y].plot(angles, mean_list, linewidth=2, linestyle='solid', c=fill_color[idx])
             axs[y].fill(angles, mean_list, c=fill_color[idx], alpha=0.4)
             axs[y].set_thetagrids(np.degrees(angles[:-1]), df_mean.columns)
-            axs[y].set_title("Topology " + str(df_mean.index[idx]), fontsize=12)
+            axs[y].set_title(topo_names[idx], fontsize=12)
             axs[y].grid(True)
             axs[y].set_yticklabels([])
             idx += 1
@@ -333,30 +335,30 @@ def printRadarPlots(df_mean, fill_color,rows,columns, lbl_correction, figsize, p
 def filterData(df,topologies, latency_uplims,latency_lowlims,cost_uplims,cost_lowlims,complexity_uplims, complexity_lowlims, scalability_uplims, scalability_lowlims) :
     for i, topo in enumerate(topologies):
         if latency_uplims[i] is None:
-            latency_uplims[i] = df[(df.Topology == topo)].latency.max()
+            latency_uplims[i] = df[(df.Topology == topo)].Latency.max()
         if latency_lowlims[i] is None:
-            latency_lowlims[i] = df[(df.Topology == topo)].latency.min()
+            latency_lowlims[i] = df[(df.Topology == topo)].Latency.min()
         if cost_uplims[i] is None:
-            cost_uplims[i] = df[(df.Topology == topo)].cost.max()
+            cost_uplims[i] = df[(df.Topology == topo)].Cost.max()
         if cost_lowlims[i] is None:
-            cost_lowlims[i] = df[(df.Topology == topo)].cost.min()
+            cost_lowlims[i] = df[(df.Topology == topo)].Cost.min()
         if complexity_uplims[i] is None:
-            complexity_uplims[i] = df[(df.Topology == topo)].complexity.max()
+            complexity_uplims[i] = df[(df.Topology == topo)].Complexity.max()
         if complexity_lowlims[i] is None:
-            complexity_lowlims[i] = df[(df.Topology == topo)].complexity.min()
+            complexity_lowlims[i] = df[(df.Topology == topo)].Complexity.min()
         if scalability_uplims[i] is None:
-            scalability_uplims[i] = df[(df.Topology == topo)].scalability.max()
+            scalability_uplims[i] = df[(df.Topology == topo)]["Load Sensitivity"].max()
         if scalability_lowlims[i] is None:
-            scalability_lowlims[i] = df[(df.Topology == topo)].scalability.min()
+            scalability_lowlims[i] = df[(df.Topology == topo)]["Load Sensitivity"].min()
 
     df_filtered = pd.DataFrame()
 
     for i, topo in enumerate(topologies) :
         df1 = df[(df.Topology == topo) &
-            (df.latency <= latency_uplims[i]) & (df.latency >= latency_lowlims[i]) &
-            (df.cost <= cost_uplims[i]) & (df.cost >= cost_lowlims[i]) & 
-            (df.complexity <= complexity_uplims[i])& (df.complexity >= complexity_lowlims[i]) &
-            (df.scalability <= scalability_uplims[i])& (df.scalability >= scalability_lowlims[i])]
+            (df.Latency <= latency_uplims[i]) & (df.Latency >= latency_lowlims[i]) &
+            (df.Cost <= cost_uplims[i]) & (df.Cost >= cost_lowlims[i]) & 
+            (df.Complexity <= complexity_uplims[i])& (df.Complexity >= complexity_lowlims[i]) &
+            (df["Load Sensitivity"] <= scalability_uplims[i])& (df["Load Sensitivity"] >= scalability_lowlims[i])]
 
         df_filtered = pd.concat([df_filtered, df1])
 
@@ -364,3 +366,147 @@ def filterData(df,topologies, latency_uplims,latency_lowlims,cost_uplims,cost_lo
     print("Filtered out {} rows of data".format(removed_rows))
 
     return df_filtered
+
+def printTopologyClusters(data, colors) :
+    legend_elements = [Line2D([0], [0], marker='o', color='w', label='Simple_1',
+                            markerfacecolor=colors[0], markersize=14),
+                            Line2D([0], [0], marker='o', color='w', label='Simple_2',
+                            markerfacecolor=colors[1], markersize=14),
+                            Line2D([0], [0], marker='o', color='w', label='Simple_3',
+                            markerfacecolor=colors[2], markersize=14),
+                            Line2D([0], [0], marker='o', color='w', label='Simple_4',
+                            markerfacecolor=colors[3], markersize=14),
+                            Line2D([0], [0], marker='o', color='w', label='Stream_1',
+                            markerfacecolor=colors[4], markersize=14),
+                            Line2D([0], [0], marker='o', color='w', label='Stream_2',
+                            markerfacecolor=colors[5], markersize=14),
+                            Line2D([0], [0], marker='o', color='w', label='Sophisticated_1',
+                            markerfacecolor=colors[6], markersize=14)]
+        
+
+    fig, axs = plt.subplots(2, 5, figsize=(4, 6), sharey=True)
+
+    idx = 0
+    for i, ax in enumerate(axs.flat):
+        col = data.columns[i]
+        counts = data[col]
+        samples = counts.index
+
+        bottom = None
+        for j in range(len(counts)):
+            if counts[j] > 0:
+                ax.bar(col, counts[j], bottom=bottom, label=samples[j],color=colors[j])
+                if bottom is None:
+                    bottom = counts[j]
+                else:
+                    bottom += counts[j]
+        idx += 1
+        ax.xaxis.set_visible(False)
+
+        # display y-axis
+        ax.yaxis.set_visible(False)
+        ax.set_title(col)
+
+    fig.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.35, 0.88), borderaxespad=0)
+    plt.text(1.6,1.4,"La  =  Latency", ha = 'left',va='center', transform = plt.gca().transAxes)
+    plt.text(1.6,1.3,"Co  =  Cost", ha = 'left',va='center', transform = plt.gca().transAxes)
+    plt.text(1.6,1.2,"Cx  =  Complexity", ha = 'left',va='center', transform = plt.gca().transAxes)
+    plt.text(1.6,1.1,"LS  =  Load Sensitivity", ha = 'left',va='center', transform = plt.gca().transAxes)
+    # show plot
+    plt.show()
+
+def specialPCA(pca, pca_data, corr_topo) :
+    per_var = np.round(pca.explained_variance_ratio_*100, decimals=1)
+    # Create labels
+    labels = ['PC' + str(x) for x in range(1, len(per_var)+1)]
+    pca_df = pd.DataFrame(pca_data, index=corr_topo.columns, columns=labels)
+        
+    # fit and transform the dataframe
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+    df_scaled = pd.DataFrame(scaler.fit_transform(pca_df), columns=pca_df.columns)
+    df_scaled.index = pca_df.index
+
+    # generate some example data
+    x_filtered = df_scaled.loc[['Latency','Cost', 'Complexity', 'Load Sensitivity']].PC1
+    y_filtered = df_scaled.loc[['Latency','Cost', 'Complexity', 'Load Sensitivity']].PC2
+    x = df_scaled.drop(['Latency','Cost', 'Complexity', 'Load Sensitivity']).PC1
+    y = df_scaled.drop(['Latency','Cost', 'Complexity', 'Load Sensitivity']).PC2
+    labels = x.keys()
+
+
+    # plot the data as a scatter plot
+    fig, ax = plt.subplots(figsize=(8, 8))
+    #ax.scatter(x_filtered, y_filtered, c='green', s = 75 )
+
+    circle1 = plt.Circle((0, 0), 1, color='none', ec='black', alpha=0.4)
+    plt.gca().add_artist(circle1)
+
+    circle2 = plt.Circle((0, 0), 0.7, color='none', ec='black', alpha=0.4)
+    plt.gca().add_artist(circle2)
+
+    # use dbscan to cluster the data
+    clustering = DBSCAN(eps=0.1, min_samples=1).fit(np.column_stack((x, y)))
+    # loop over each cluster and plot it as a single point with a label
+    for label in np.unique(clustering.labels_):
+        if label == -1:
+            # plot noise points as red crosses
+            ax.scatter(x[clustering.labels_ == label], y[clustering.labels_ == label], c='r', marker='x')
+        else:
+            # plot cluster points as a single blue point
+            x_mean = np.mean(x[clustering.labels_ == label])
+            y_mean = np.mean(y[clustering.labels_ == label])
+            ax.scatter(x_mean, y_mean, c='royalblue', s=75)
+            
+            # add a label next to the point listing the samples in the cluster
+            cluster_samples = labels[clustering.labels_ == label]
+            cluster_label = "\n".join(cluster_samples)
+
+            if(len(cluster_samples) == 1) :
+                ax.text(x_mean+0.058, y_mean, cluster_label, fontsize=10, verticalalignment='center')
+            elif(len(cluster_samples) == 7) :
+                ax.annotate(cluster_label, (x_mean, y_mean), xytext=(-56, -110), textcoords='offset points',
+                        arrowprops=dict(facecolor='black', arrowstyle='->'))
+            elif(len(cluster_samples) == 3) :
+                ax.annotate(cluster_label, (x_mean, y_mean), xytext=(-44, -50), textcoords='offset points',
+                        arrowprops=dict(facecolor='black', arrowstyle='->'))
+            elif 'fargate_vcpus' in cluster_samples :
+                ax.annotate(cluster_label, (x_mean, y_mean), xytext=(-54, -40), textcoords='offset points',
+                        arrowprops=dict(facecolor='black', arrowstyle='->'))
+            elif 'kinesis_efos' in cluster_samples :
+                ax.annotate(cluster_label, (x_mean, y_mean), xytext=(-90, -30), textcoords='offset points',
+                        arrowprops=dict(facecolor='black', arrowstyle='->'))
+            elif 'kinesis_peak' in cluster_samples :
+                ax.annotate(cluster_label, (x_mean, y_mean), xytext=(-40, -40), textcoords='offset points',
+                        arrowprops=dict(facecolor='black', arrowstyle='->'))
+            else :
+                ax.text(x_mean+0.058, y_mean, cluster_label, fontsize=10, verticalalignment='center')
+        
+            #ax.text(x_mean+0.058, y_mean, cluster_label, fontsize=10, verticalalignment='center')
+        
+
+    clustering = DBSCAN(eps=0.1, min_samples=1).fit(np.column_stack((x_filtered, y_filtered)))
+    labels = x_filtered.keys()
+
+    for label in np.unique(clustering.labels_):
+        if label == -1:
+            # plot noise points as red crosses
+            ax.scatter(x_filtered[clustering.labels_ == label], y_filtered[clustering.labels_ == label], c='r', marker='x')
+        else:
+            x_mean = np.mean(x_filtered[clustering.labels_ == label])
+            y_mean = np.mean(y_filtered[clustering.labels_ == label])
+            ax.scatter(x_mean-0.05, y_mean, c='green', s=75)
+            
+            # add a label next to the point listing the samples in the cluster
+            cluster_samples = labels[clustering.labels_ == label]
+            cluster_label = "\n".join(cluster_samples)
+            ax.text(x_mean-0.1, y_mean, cluster_label, fontsize=10, verticalalignment='center', horizontalalignment='right')
+
+
+
+    # set axis labels and show the plot
+    ax.set_xlabel('PC1 - {0}%'.format(per_var[0]))
+    ax.set_ylabel('PC2 - {0}%'.format(per_var[1]))
+    ax.set_xlim([-1.45, 1.45])
+    ax.set_ylim([-1.3, 1.3])
+    ax.set_aspect('equal')
+    plt.show()
