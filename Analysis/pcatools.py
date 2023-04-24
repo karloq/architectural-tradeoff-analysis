@@ -494,7 +494,7 @@ def specialPCA(pca, pca_data, corr_topo) :
         else:
             x_mean = np.mean(x_filtered[clustering.labels_ == label])
             y_mean = np.mean(y_filtered[clustering.labels_ == label])
-            ax.scatter(x_mean-0.05, y_mean, c='green', s=75)
+            ax.scatter(x_mean-0.05, y_mean, c='orangered', s=75)
             
             # add a label next to the point listing the samples in the cluster
             cluster_samples = labels[clustering.labels_ == label]

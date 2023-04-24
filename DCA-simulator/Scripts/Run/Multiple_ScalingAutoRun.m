@@ -38,7 +38,7 @@ simulation_limit = 2000;
 %#ok<*AGROW>
 %#ok<*SAGROW>
 
-for topo = 6:7%length(topology_script)
+for topo = 5:5%length(topology_script)
     %------------------------ Model Initiation  -----------------------------%
     run(topology_script(topo));
     load_system(model_file);
